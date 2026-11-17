@@ -1,0 +1,384 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global safety net: deny everything by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidUserPrivate(data) {
+      return data.keys().hasAll([
+          'uid',
+          'displayName',
+          'email',
+          'racesWon',
+          'racesPlayed',
+          'rating',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'uid',
+          'displayName',
+          'email',
+          'photoUrl',
+          'coinBalance',
+          'racesWon',
+          'racesPlayed',
+          'rating',
+          'checkInStreak',
+          'lastCheckInDate',
+          'walletBalanceUsd',
+          'totalDepositedUsd',
+          'totalWonUsd',
+          'demoBalanceUsd',
+          'demoRacesWon',
+          'demoRacesPlayed',
+          'dailyDiscountUsd',
+          'lastDailyRaceDate',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.uid is string
+        && isValidId(data.uid)
+        && data.uid == request.auth.uid
+        && data.displayName is string
+        && data.displayName.size() >= 1
+        && data.displayName.size() <= 64
+        && data.email is string
+        && data.email.size() >= 3
+        && data.email.size() <= 160
+        && (!('photoUrl' in data) || (data.photoUrl is string && data.photoUrl.size() <= 512))
+        && (!('coinBalance' in data) || (data.coinBalance is int && data.coinBalance >= 0 && data.coinBalance <= 100000000))
+        && data.racesWon is int
+        && data.racesWon >= 0
+        && data.racesWon <= 100000
+        && data.racesPlayed is int
+        && data.racesPlayed >= 0
+        && data.racesPlayed <= 100000
+        && data.rating is int
+        && data.rating >= 0
+        && data.rating <= 10000
+        && (!('checkInStreak' in data) || (data.checkInStreak is int && data.checkInStreak >= 0 && data.checkInStreak <= 3650))
+        && (!('lastCheckInDate' in data) || (data.lastCheckInDate is string && data.lastCheckInDate.size() <= 10))
+        && (!('walletBalanceUsd' in data) || (data.walletBalanceUsd is number && data.walletBalanceUsd >= 0 && data.walletBalanceUsd <= 100000))
+        && (!('totalDepositedUsd' in data) || (data.totalDepositedUsd is number && data.totalDepositedUsd >= 0 && data.totalDepositedUsd <= 1000000))
+        && (!('totalWonUsd' in data) || (data.totalWonUsd is number && data.totalWonUsd >= 0 && data.totalWonUsd <= 1000000))
+        && (!('demoBalanceUsd' in data) || (data.demoBalanceUsd is number && data.demoBalanceUsd >= 0 && data.demoBalanceUsd <= 100000))
+        && (!('demoRacesWon' in data) || (data.demoRacesWon is int && data.demoRacesWon >= 0 && data.demoRacesWon <= 100000))
+        && (!('demoRacesPlayed' in data) || (data.demoRacesPlayed is int && data.demoRacesPlayed >= 0 && data.demoRacesPlayed <= 100000))
+        && (!('dailyDiscountUsd' in data) || (data.dailyDiscountUsd is number && data.dailyDiscountUsd >= 0 && data.dailyDiscountUsd <= 10))
+        && (!('lastDailyRaceDate' in data) || (data.lastDailyRaceDate is string && data.lastDailyRaceDate.size() <= 10))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidPlayerPublic(data) {
+      return data.keys().hasAll([
+          'uid',
+          'displayName',
+          'racesWon',
+          'racesPlayed',
+          'rating',
+          'isPublic',
+          'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'uid',
+          'displayName',
+          'totalWonUsd',
+          'racesWon',
+          'racesPlayed',
+          'rating',
+          'isPublic',
+          'updatedAt'
+        ])
+        && data.uid is string
+        && isValidId(data.uid)
+        && data.uid == request.auth.uid
+        && data.displayName is string
+        && data.displayName.size() >= 1
+        && data.displayName.size() <= 64
+        && (!('totalWonUsd' in data) || (data.totalWonUsd is number && data.totalWonUsd >= 0 && data.totalWonUsd <= 1000000))
+        && data.racesWon is int
+        && data.racesWon >= 0
+        && data.racesWon <= 100000
+        && data.racesPlayed is int
+        && data.racesPlayed >= 0
+        && data.racesPlayed <= 100000
+        && data.rating is int
+        && data.rating >= 0
+        && data.rating <= 10000
+        && data.isPublic is bool
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidCoinTransaction(data) {
+      return data.keys().hasAll([
+          'userId',
+          'type',
+          'amountUsd',
+          'title',
+          'methodLabel',
+          'referenceId',
+          'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'userId',
+          'type',
+          'amountUsd',
+          'coinsDelta',
+          'title',
+          'methodLabel',
+          'referenceId',
+          'createdAt'
+        ])
+        && data.userId is string
+        && isValidId(data.userId)
+        && data.userId == request.auth.uid
+        && data.type in ['coin_purchase', 'daily_checkin', 'race_reward']
+        && data.amountUsd is number
+        && data.amountUsd == 0
+        && (!('coinsDelta' in data) || (data.coinsDelta is int && data.coinsDelta >= 0 && data.coinsDelta <= 12000))
+        && data.title is string
+        && data.title.size() >= 1
+        && data.title.size() <= 120
+        && data.methodLabel is string
+        && data.methodLabel.size() >= 1
+        && data.methodLabel.size() <= 120
+        && data.referenceId is string
+        && isValidId(data.referenceId)
+        && data.createdAt is timestamp;
+    }
+
+    function isValidRaceResult(data) {
+      return data.keys().hasAll([
+          'matchId',
+          'trackId',
+          'trackName',
+          'winnerId',
+          'winnerName',
+          'loserId',
+          'loserName',
+          'winnerTimeMs',
+          'playerCount',
+          'isPublic',
+          'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'matchId',
+          'trackId',
+          'trackName',
+          'stakeUsd',
+          'potUsd',
+          'winnerId',
+          'winnerName',
+          'loserId',
+          'loserName',
+          'winnerTimeMs',
+          'playerCount',
+          'isPublic',
+          'createdAt'
+        ])
+        && data.matchId is string
+        && isValidId(data.matchId)
+        && data.trackId in [
+          'monaco_harbor',
+          'ibiza_coast',
+          'lagos_island',
+          'los_angeles_sunset',
+          'redrock_canyon',
+          'silverstone_night'
+        ]
+        && data.trackName is string
+        && data.trackName.size() >= 1
+        && data.trackName.size() <= 80
+        && (!('stakeUsd' in data) || (data.stakeUsd is number && data.stakeUsd == 0))
+        && (!('potUsd' in data) || (data.potUsd is number && data.potUsd == 0))
+        && data.winnerId is string
+        && isValidId(data.winnerId)
+        && data.winnerName is string
+        && data.winnerName.size() >= 1
+        && data.winnerName.size() <= 64
+        && data.loserId is string
+        && isValidId(data.loserId)
+        && data.loserName is string
+        && data.loserName.size() >= 1
+        && data.loserName.size() <= 64
+        && data.winnerTimeMs is int
+        && data.winnerTimeMs >= 1000
+        && data.winnerTimeMs <= 3600000
+        && data.playerCount is int
+        && data.playerCount >= 2
+        && data.playerCount <= 4
+        && data.isPublic is bool
+        && data.createdAt is timestamp;
+    }
+
+    // Private user account & non-withdrawable Coin balance
+    match /users/{userId} {
+      allow get: if isValidId(userId) && isOwner(userId);
+      allow list: if false;
+      allow create: if isValidId(userId)
+        && isVerified()
+        && isOwner(userId)
+        && isValidUserPrivate(incoming())
+        && incoming().coinBalance == 0
+        && incoming().racesWon == 0
+        && incoming().racesPlayed == 0
+        && incoming().rating == 1200
+        && (!('checkInStreak' in incoming()) || incoming().checkInStreak == 0)
+        && !('walletBalanceUsd' in incoming())
+        && !('totalDepositedUsd' in incoming())
+        && !('totalWonUsd' in incoming())
+        && !('demoBalanceUsd' in incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isValidId(userId)
+        && isVerified()
+        && isOwner(userId)
+        && isValidUserPrivate(incoming())
+        && incoming().uid == existing().uid
+        && incoming().email == existing().email
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          // Action: Update driver display name or photo
+          (incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoUrl', 'updatedAt']))
+          ||
+          // Action: Daily check-in reward (+50 to +150 non-withdrawable Coins once per UTC day)
+          (
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'coinBalance',
+              'checkInStreak',
+              'lastCheckInDate',
+              'updatedAt'
+            ])
+            && incoming().lastCheckInDate.size() == 10
+            && (!('lastCheckInDate' in existing()) || incoming().lastCheckInDate != existing().lastCheckInDate)
+            && incoming().coinBalance is int
+            && incoming().coinBalance <= 100000000
+            && (!('coinBalance' in existing())
+              ? (incoming().coinBalance >= 50 && incoming().coinBalance <= 150)
+              : (incoming().coinBalance >= existing().coinBalance + 50 && incoming().coinBalance <= existing().coinBalance + 150))
+            && incoming().checkInStreak >= 1
+            && (!('checkInStreak' in existing()) ? incoming().checkInStreak == 1 : incoming().checkInStreak <= existing().checkInStreak + 1)
+          )
+          ||
+          // Action: Credit non-withdrawable Shop coins (1,000 to 12,000 per verified purchase)
+          (
+            incoming().diff(existing()).affectedKeys().hasOnly(['coinBalance', 'updatedAt'])
+            && incoming().coinBalance is int
+            && incoming().coinBalance >= 1000
+            && incoming().coinBalance <= 100000000
+            && (!('coinBalance' in existing())
+              ? (incoming().coinBalance <= 12000)
+              : (incoming().coinBalance > existing().coinBalance && incoming().coinBalance - existing().coinBalance <= 12000))
+          )
+          ||
+          // Action: Free race completion (updates wins/races/ELO and awards optional +0..100 non-withdrawable Victory Coins)
+          (
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'coinBalance',
+              'racesWon',
+              'racesPlayed',
+              'rating',
+              'updatedAt'
+            ])
+            && incoming().coinBalance is int
+            && incoming().coinBalance <= 100000000
+            && (!('coinBalance' in existing())
+              ? (incoming().coinBalance >= 0 && incoming().coinBalance <= 100)
+              : (incoming().coinBalance >= existing().coinBalance && incoming().coinBalance <= existing().coinBalance + 100))
+            && incoming().racesWon >= existing().racesWon
+            && incoming().racesWon - existing().racesWon <= 1
+            && incoming().racesPlayed >= existing().racesPlayed
+            && incoming().racesPlayed - existing().racesPlayed <= 1
+          )
+        );
+      allow delete: if false;
+
+      match /transactions/{transactionId} {
+        allow get: if isValidId(userId) && isValidId(transactionId) && isOwner(userId);
+        allow list: if isOwner(userId) && existing().userId == request.auth.uid;
+        allow create: if isValidId(userId)
+          && isValidId(transactionId)
+          && isVerified()
+          && isOwner(userId)
+          && isValidCoinTransaction(incoming())
+          && incoming().createdAt == request.time
+          && exists(/databases/$(database)/documents/users/$(userId));
+        allow update, delete: if false;
+      }
+
+      // Withdrawals & payouts disabled permanently — coins are strictly non-withdrawable
+      match /payoutRequests/{requestId} {
+        allow read, write: if false;
+      }
+    }
+
+    // Public non-PII driver leaderboard
+    match /players/{playerId} {
+      allow get: if isValidId(playerId) && (isOwner(playerId) || (resource != null && existing().isPublic == true));
+      allow list: if existing().isPublic == true;
+      allow create: if isValidId(playerId)
+        && isVerified()
+        && isOwner(playerId)
+        && isValidPlayerPublic(incoming())
+        && incoming().updatedAt == request.time;
+      allow update: if isValidId(playerId)
+        && isVerified()
+        && isOwner(playerId)
+        && isValidPlayerPublic(incoming())
+        && incoming().uid == existing().uid
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'displayName',
+          'racesWon',
+          'racesPlayed',
+          'rating',
+          'isPublic',
+          'updatedAt'
+        ]);
+      allow delete: if false;
+    }
+
+    // Public free race results
+    match /raceResults/{resultId} {
+      allow get: if isValidId(resultId) && (resource == null || existing().isPublic == true);
+      allow list: if existing().isPublic == true;
+      allow create: if isValidId(resultId)
+        && isVerified()
+        && isValidRaceResult(incoming())
+        && incoming().winnerId == request.auth.uid
+        && incoming().createdAt == request.time;
+      allow update, delete: if false;
+    }
+  }
+}

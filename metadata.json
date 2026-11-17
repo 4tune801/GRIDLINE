@@ -1,0 +1,6 @@
+{
+  "name": "Gridline",
+  "description": "Free-to-play 3D multiplayer car racing game with live 2-4 player circuits, computer bots, global chat, and a non-withdrawable Coin Shop.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

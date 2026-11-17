@@ -1,0 +1,310 @@
+{
+  "entities": {
+    "UserPrivate": {
+      "title": "UserPrivate",
+      "description": "Private player account profile, skill record, daily check-in streak, and non-withdrawable Shop coin balance.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Firebase Auth UID of the player."
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "description": "Driver handle."
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "minLength": 3,
+          "maxLength": 160,
+          "description": "Private email address from Google Auth."
+        },
+        "photoUrl": {
+          "type": "string",
+          "maxLength": 512,
+          "description": "Optional avatar URL."
+        },
+        "coinBalance": {
+          "type": "integer",
+          "description": "Non-withdrawable in-game Coin balance (purchased in Shop or earned via daily check-in / race bonuses)."
+        },
+        "racesWon": {
+          "type": "integer",
+          "description": "Total free races won."
+        },
+        "racesPlayed": {
+          "type": "integer",
+          "description": "Total free races completed."
+        },
+        "rating": {
+          "type": "integer",
+          "description": "Driver ELO skill rating."
+        },
+        "checkInStreak": {
+          "type": "integer",
+          "description": "Consecutive daily check-in streak count."
+        },
+        "lastCheckInDate": {
+          "type": "string",
+          "maxLength": 10,
+          "description": "Last UTC YYYY-MM-DD date of daily check-in reward claim."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Account creation timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update timestamp."
+        }
+      },
+      "required": [
+        "uid",
+        "displayName",
+        "email",
+        "coinBalance",
+        "racesWon",
+        "racesPlayed",
+        "rating",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "PlayerPublic": {
+      "title": "PlayerPublic",
+      "description": "Public non-PII driver leaderboard profile.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Firebase Auth UID of the driver."
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "description": "Public driver name."
+        },
+        "racesWon": {
+          "type": "integer",
+          "description": "Total races won."
+        },
+        "racesPlayed": {
+          "type": "integer",
+          "description": "Total races completed."
+        },
+        "rating": {
+          "type": "integer",
+          "description": "Driver skill rating."
+        },
+        "isPublic": {
+          "type": "boolean",
+          "description": "Whether the driver appears on the public leaderboard."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update timestamp."
+        }
+      },
+      "required": [
+        "uid",
+        "displayName",
+        "racesWon",
+        "racesPlayed",
+        "rating",
+        "isPublic",
+        "updatedAt"
+      ]
+    },
+    "CoinTransaction": {
+      "title": "CoinTransaction",
+      "description": "Immutable activity ledger entry for non-withdrawable Coin purchases, daily check-in bonuses, and race win rewards.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Owner user UID."
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "coin_purchase",
+            "daily_checkin",
+            "race_reward"
+          ],
+          "description": "Activity category."
+        },
+        "amountUsd": {
+          "type": "number",
+          "description": "Always 0 (non-withdrawable virtual coins only)."
+        },
+        "coinsDelta": {
+          "type": "integer",
+          "description": "Coins credited."
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "description": "Ledger summary label."
+        },
+        "methodLabel": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "description": "Payment gateway or race circuit label."
+        },
+        "referenceId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Related purchase or race match ID."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Transaction timestamp."
+        }
+      },
+      "required": [
+        "userId",
+        "type",
+        "amountUsd",
+        "title",
+        "methodLabel",
+        "referenceId",
+        "createdAt"
+      ]
+    },
+    "RaceResult": {
+      "title": "RaceResult",
+      "description": "Publicly readable record of a completed free multiplayer or bot race.",
+      "type": "object",
+      "properties": {
+        "matchId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Unique race match ID."
+        },
+        "trackId": {
+          "type": "string",
+          "enum": [
+            "monaco_harbor",
+            "ibiza_coast",
+            "lagos_island",
+            "los_angeles_sunset",
+            "redrock_canyon",
+            "silverstone_night"
+          ],
+          "description": "Circuit raced."
+        },
+        "trackName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80,
+          "description": "Display name of the circuit."
+        },
+        "winnerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Winning driver UID."
+        },
+        "winnerName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "description": "Winning driver display name."
+        },
+        "loserId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Runner-up driver UID."
+        },
+        "loserName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "description": "Runner-up driver display name."
+        },
+        "winnerTimeMs": {
+          "type": "integer",
+          "description": "Winner total race time in milliseconds."
+        },
+        "playerCount": {
+          "type": "integer",
+          "description": "Total drivers in the race (2 to 4)."
+        },
+        "isPublic": {
+          "type": "boolean",
+          "description": "Public visibility flag for match feed."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Race completion timestamp."
+        }
+      },
+      "required": [
+        "matchId",
+        "trackId",
+        "trackName",
+        "winnerId",
+        "winnerName",
+        "loserId",
+        "loserName",
+        "winnerTimeMs",
+        "playerCount",
+        "isPublic",
+        "createdAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": {
+        "$ref": "#/entities/UserPrivate"
+      },
+      "description": "Private user account document containing email, race stats, and non-withdrawable coin balance."
+    },
+    "/players/{playerId}": {
+      "schema": {
+        "$ref": "#/entities/PlayerPublic"
+      },
+      "description": "Public non-PII driver stats for leaderboards."
+    },
+    "/users/{userId}/transactions/{transactionId}": {
+      "schema": {
+        "$ref": "#/entities/CoinTransaction"
+      },
+      "description": "User non-withdrawable coin purchase and activity ledger."
+    },
+    "/raceResults/{resultId}": {
+      "schema": {
+        "$ref": "#/entities/RaceResult"
+      },
+      "description": "Public free-to-play race match results feed."
+    }
+  }
+}
